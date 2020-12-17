@@ -1,2 +1,3 @@
-# Alexa... 
-## play DAN-GAN-RON-PA
+# DANGANS AND DRAGUNS - GRADUATION GAME
+
+## RULES TBA
