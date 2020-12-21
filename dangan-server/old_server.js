@@ -15,10 +15,15 @@ wsServer.on('connection', socket =>{
 
   //connected
   socket.on('message', message => {
-    console.log(message);
-    socket.send(`You sent : ${message}`)
-  })
+         console.log(message);
+     socket.send(`You sent : ${message}`)
+    wsServer.clients.forEach(client =>{
+      if (client !== socket && client.readyState === ws.OPEN) {
+        client.send(message);
+      }
+    })
 
+  })
   socket.send('You have connected')
 });
 
