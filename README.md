@@ -2,7 +2,7 @@
 
 ## RULES 
 
-Players start off in a communal lobby, and are assigned a faction : student or traitor
+1. Players start off in a communal lobby, and are assigned a faction : student or traitor
 
 2. Once factions are assigned, each player is given a unique role which affords them a certain power they can use during the game i.e a bonus to stats or an ability to switch rooms during the interaction phase (explained below)
 
