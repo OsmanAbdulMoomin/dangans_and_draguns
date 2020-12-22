@@ -3,9 +3,11 @@ import {useEffect, useState, useRef} from "react";
 import socketIOClient from "socket.io-client";
 
 const NEW_CHAT_MESSAGE_EVENT = "newChatMessage";
+
+
 const SOCKET_SERVER_URL = "http://localhost:4000";
 
-const useChat = (roomId) => {
+const useChat = ({roomId, userName, password}) => {
   const [messages, setMessages] = useState([]); //messages
   const socketRef = useRef(); //use a reference to the socket rather than the socket
 
@@ -24,6 +26,10 @@ const useChat = (roomId) => {
     setMessages(messages => [...messages, incomingMessage]);
   });
 
+  // socketRef.current.on(USERNAME, username =>{
+  //   const
+  // })
+
   //cleanup, remove socket if connection closes
     return () =>{
     socketRef.current.disconnect();
@@ -36,6 +42,7 @@ const useChat = (roomId) => {
     {
       socketRef.current.emit(NEW_CHAT_MESSAGE_EVENT, 
       {
+      user: userName,
       body: messageBody,
       senderId: socketRef.current.id,
       });

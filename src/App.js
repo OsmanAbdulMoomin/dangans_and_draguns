@@ -17,7 +17,7 @@ const App = () => {
   return (<BrowserRouter>
   <Switch>
   <Route exact path="/" component={HomePage}></Route>
-  <Route exact path="/:roomname" component={Room}></Route>
+  <Route exact path="/:roomname" component={Room} render={ (props) => (<Room> </Room> )}></Route>
   </Switch>
   </BrowserRouter>);
 }
