@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 
 import useChat from "../hooks/useChat";
 
@@ -17,12 +17,21 @@ import "./Room.css";
 
 const Room = (props) => {
   //Get Room ID
-  console.log(props);
+  console.log(`my props are : ${props}`);
   const { roomname } = props.match.params;
+  const {userName} = props.location.state;
+
+  const playerProps = { roomname, userName}
+console.log(roomname)
+  console.log(`my username is : ${userName}`);
+
   //Manages Messaging - Opens Websocket
-  const {messages, sendMessage} = useChat(roomname);
+  const {messages, sendMessage} = useChat(playerProps);
+
   //Message to be sent
   const [newMessage, setNewMessage] = useState("")
+  
+  const [playerList] = useState([]);
 
     const handleNewMessageChange = (event) => {
       setNewMessage(event.target.value);
@@ -33,6 +42,17 @@ const Room = (props) => {
       setNewMessage("");
     }
 
+//     const addNewUsers = (userName) => {
+// return(;)
+//     }
+
+  // useEffect(() => {
+  //   socket.on("new user")
+  //   return () => {
+  //     cleanup
+  //   }
+  // }, [input])
+
       return (<Container>
       <Box className="chat-room-container">
       <Typography variant="h1" className="room-name">
@@ -42,12 +62,13 @@ const Room = (props) => {
       <List className="message-list">
       {messages.map((message, i) => (
         <ListItem key={i}
-        className={`message-item${message.ownedByCurrentUser ? "my-message" : "recieved-message"}`}>
-        {message.body}
+        className={`message-item ${message.ownedByCurrentUser ? "my-message" : "received-message"}`}>
+        {`${message.user} : ${message.body}`}
         </ListItem>
       ))}
       </List>
       </Box>
+     
       <TextField
       value={newMessage}
       onChange={handleNewMessageChange}
