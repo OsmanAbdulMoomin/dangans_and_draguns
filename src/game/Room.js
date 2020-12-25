@@ -1,6 +1,8 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 
-import useChat from "../hooks/useChat";
+// import useChat from "../hooks/useChat";
+
+import socketIOClient from 'socket.io-client';
 
 import {
   Box,
@@ -20,13 +22,35 @@ const Room = (props) => {
   console.log(`my props are : ${props}`);
   const { roomname } = props.match.params;
   const {userName} = props.location.state;
+  /////////////////////////////////////
+  const NEW_CHAT_MESSAGE_EVENT = "newChatMessage"
+  const NEW_USER_EVENT ="newUser"
+  ///////////SOCKET URL////////////////
+  const SOCKET_SERVER_URL = "http://localhost:4000";
+  ////////////////////////////////////
+  const [messages, setMessages] = useState([]); //messages
+  const [users, setUsers] = useState([]);
+  ////////////////////////////////////
+  const socketRef = useRef(); //use a reference to the socket rather than the socket
 
-  const playerProps = { roomname, userName}
-console.log(roomname)
+  useEffect(() =>{  
+    socketRef.current = socketIOClient(SOCKET_SERVER_URL, {
+      query: {roomname},
+    });
+
+     socketRef.current.emit(NEW_USER_EVENT, userName )
+
+
+    }, [roomname]);
+
+ 
+  console.log(roomname)
   console.log(`my username is : ${userName}`);
 
   //Manages Messaging - Opens Websocket
-  const {messages, sendMessage} = useChat(playerProps);
+
+  
+ 
 
   //Message to be sent
   const [newMessage, setNewMessage] = useState("")
@@ -36,22 +60,69 @@ console.log(roomname)
     const handleNewMessageChange = (event) => {
       setNewMessage(event.target.value);
     }
+    //////////////HANDLES SENDING MESSAGE TO WEBSOCKET
+     const sendMessage = (messageBody) =>
+    {
+      socketRef.current.emit(NEW_CHAT_MESSAGE_EVENT, 
+      {
+      user: userName,
+      body: messageBody,
+      senderId: socketRef.current.id,
+      });
+
+    }
 
     const handleMessageSend = () =>{
       sendMessage(newMessage);
       setNewMessage("");
     }
 
-//     const addNewUsers = (userName) => {
-// return(;)
-//     }
+    
 
-  // useEffect(() => {
-  //   socket.on("new user")
-  //   return () => {
-  //     cleanup
-  //   }
-  // }, [input])
+ 
+  useEffect(() => { 
+  //create WebSocket
+socketRef.current.on('login', data =>{
+  console.log(data)
+  var currentUsers = [];
+  for(let value of Object.values(data.users)){
+    currentUsers.push(value);
+  }
+  setUsers(currentUsers)
+  console.log(users)
+// setUsers(users => [...users, data.users]);
+} )
+
+socketRef.current.on('update', (data)=>{
+  var currentUsers = [];
+  for(let value of Object.values(data)){
+    currentUsers.push(value);
+  }
+  setUsers(currentUsers)
+  console.log(users)
+
+})
+   
+   
+  //message listener
+    socketRef.current.on(NEW_CHAT_MESSAGE_EVENT, message => {
+    const incomingMessage ={
+      ...message,
+      ownedByCurrentUser: message.senderId === socketRef.current.id,
+    };
+    setMessages(messages => [...messages, incomingMessage]);
+  });
+
+  // socketRef.current.on(USERNAME, username =>{
+  //   const
+  // })
+
+  //cleanup, remove socket if connection closes
+    return () =>{
+    socketRef.current.disconnect();
+  };
+   }, [roomname]);
+
 
       return (<Container>
       <Box className="chat-room-container">
@@ -64,6 +135,16 @@ console.log(roomname)
         <ListItem key={i}
         className={`message-item ${message.ownedByCurrentUser ? "my-message" : "received-message"}`}>
         {`${message.user} : ${message.body}`}
+        </ListItem>
+      ))} 
+      </List>
+      </Box>
+       <Box className="messages-container">
+      <List className="message-list">
+      {users.map((user, i) => (
+        <ListItem key={i}
+        className={`message-item ${ "received-message"}`} style={{color :"black"}}>
+        {user}
         </ListItem>
       ))}
       </List>
@@ -78,6 +159,7 @@ console.log(roomname)
       <Button onClick={handleMessageSend} className="send-message-button">
       Send
       </Button>
+      <Button onClick={()=>{console.log(users) }}>users? </Button>
       </Box>
       
       </Container>);
