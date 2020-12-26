@@ -26,10 +26,6 @@ const handleNameChange = (event) =>{
   checkForm(roomId, userName);
 }
 
-const handlePasswordChange = (event) =>{
-  setPassword(event.target.value);
-}
-
 const checkForm = (roomId, userName) =>{
   var error = false;
   if (roomId === "" || userName === ""){
