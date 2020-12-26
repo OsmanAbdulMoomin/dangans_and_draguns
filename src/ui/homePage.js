@@ -26,10 +26,6 @@ const handleNameChange = (event) =>{
   checkForm(roomId, userName);
 }
 
-const handlePasswordChange = (event) =>{
-  setPassword(event.target.value);
-}
-
 const checkForm = (roomId, userName) =>{
   var error = false;
   if (roomId === "" || userName === ""){
@@ -47,7 +43,7 @@ return (
 
   <TextField error={error} className="text-input-field" type="text" placeholder="Room" value={roomId} onChange={handleRoomChange} />
   <TextField error = {error} className="text-input-field" type="text" placeholder="Username" value={userName} onChange={handleNameChange}/>
-  <TextField className="text-input-field" type="text" placeholder="Password" value={password} onChange={handlePasswordChange}/>
+
   </FormControl>
   {!error &&
 <Button color="primary" variant="contained" className="enter-room-button" component={Link} to={{pathname : `/${roomId}`, state : {

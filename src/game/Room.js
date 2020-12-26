@@ -1,11 +1,15 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 
-import useChat from "../hooks/useChat";
+import useViewport from "../hooks/useViewport";
+
+import socketIOClient from 'socket.io-client';
 
 import {
   Box,
   Button,
   Container,
+  Grid,
+  Paper,
   List,
   ListItem,
   TextField,
@@ -21,157 +25,172 @@ const Room = (props) => {
   const { roomname } = props.match.params;
   const {userName} = props.location.state;
 
-  const playerProps = { roomname, userName}
-console.log(roomname)
+  const {width, height} = useViewport();
+  /////////////////////////////////////
+  const NEW_CHAT_MESSAGE_EVENT = "newChatMessage"
+  const NEW_USER_EVENT ="newUser"
+  ///////////SOCKET URL////////////////
+  const SOCKET_SERVER_URL = "http://localhost:4000";
+  ////////////////////////////////////
+  const [messages, setMessages] = useState([]); //messages
+  const [users, setUsers] = useState([]);
+  ////////////////////////////////////
+  const socketRef = useRef(); //use a reference to the socket rather than the socket
+  
+  useEffect(() =>{  
+    socketRef.current = socketIOClient(SOCKET_SERVER_URL, {
+      query: {roomname},
+    });
+
+     socketRef.current.emit(NEW_USER_EVENT, userName )
+
+
+    }, [roomname]);
+
+ 
+  console.log(roomname)
   console.log(`my username is : ${userName}`);
 
   //Manages Messaging - Opens Websocket
-  const {messages, sendMessage} = useChat(playerProps);
+
+  
+  
+ 
 
   //Message to be sent
   const [newMessage, setNewMessage] = useState("")
   
-  const [playerList] = useState([]);
+ 
 
     const handleNewMessageChange = (event) => {
       setNewMessage(event.target.value);
     }
+    //////////////HANDLES SENDING MESSAGE TO WEBSOCKET
+     const sendMessage = (messageBody) =>
+     
+    {
+      messageBody !== "" ? 
+      socketRef.current.emit(NEW_CHAT_MESSAGE_EVENT, 
+      {
+      user: userName,
+      body: messageBody,
+      senderId: socketRef.current.id,
+      })
+      :
+      alert("Cannot be empty");
+    };
 
-    const handleMessageSend = () =>{
+    const handleMessageSend = () => {
       sendMessage(newMessage);
       setNewMessage("");
-    }
+    };
 
-//     const addNewUsers = (userName) => {
-// return(;)
-//     }
+    
 
-  // useEffect(() => {
-  //   socket.on("new user")
-  //   return () => {
-  //     cleanup
-  //   }
-  // }, [input])
+ 
+  useEffect(() => { 
+  //create WebSocket
+  socketRef.current.on('login', data =>{
+  console.log(data)
+  var currentUsers = [];
+  for(let value of Object.values(data.users)){
+    currentUsers.push(value);
+  }
+  setUsers(currentUsers)
+  console.log(users)
+// setUsers(users => [...users, data.users]);
+} )
 
-      return (<Container>
-      <Box className="chat-room-container">
-      <Typography variant="h1" className="room-name">
-      Room : {roomname}
-      </Typography>
-      <Box className="messages-container">
-      <List className="message-list">
-      {messages.map((message, i) => (
-        <ListItem key={i}
-        className={`message-item ${message.ownedByCurrentUser ? "my-message" : "received-message"}`}>
-        {`${message.user} : ${message.body}`}
-        </ListItem>
-      ))}
-      </List>
-      </Box>
-     
-      <TextField
-      value={newMessage}
-      onChange={handleNewMessageChange}
-      placeholder="Write message..."
-      className="new-message-field"/>
+socketRef.current.on('update', (data)=>{
+  var currentUsers = [];
+  for(let value of Object.values(data)){
+    currentUsers.push(value);
+  }
+  setUsers(currentUsers)
+  console.log(users)
 
-      <Button onClick={handleMessageSend} className="send-message-button">
-      Send
-      </Button>
-      </Box>
-      
-      </Container>);
+})
+   
+   
+  //message listener
+    socketRef.current.on(NEW_CHAT_MESSAGE_EVENT, message => {
+    const incomingMessage ={
+      ...message,
+      ownedByCurrentUser: message.senderId === socketRef.current.id,
+    };
+   
+    setMessages(messages => [...messages, incomingMessage]);
+  });
+
+  // socketRef.current.on(USERNAME, username =>{
+  //   const
+  // })
+
+  //cleanup, remove socket if connection closes
+    return () =>{
+    socketRef.current.disconnect();
+  };
+   }, [roomname]);
+
+  return (  
+  <Grid id = "room-container" container xs = {12} style = {{border : "2px solid red", height : height}}>
+    <Grid id = "social-interaction-container" item container xs = {4} style = {{border : "2px solid yellow", height : height}}>
+      <Grid id = "room-player-message-container" direction = "column" item container xs = {12} style = {{border : "2px solid green", height : height}}>
+      <Grid item xs = {2} style = {{border : "2px solid pink", maxWidth : "100%"}}  zeroMinWidth>
+      <Box flexGrow={1}>
+        <Typography variant = "h2" > {`Room : ${roomname}`} </Typography> 
+        </Box>
+      </Grid>
+       <Grid item xs={5} style = {{border : "2px solid pink", maxWidth : "100%"}}>
+          <List className="message-list" fullWidth>
+       {users.map((user, i) => (
+         <ListItem key={i}
+         className = "message-item player" style={{color :"black"}}>
+          <Typography variant="body1" fullWidth> {user} </Typography>
+         </ListItem>
+       ))}
+          </List>
+
+       </Grid>
+
+       <Grid direction = "column" item container xs={5} style = {{border : "2px solid pink", maxWidth : "100%"}}>
+        <Grid item xs = {8} style={{maxWidth : "100%" , maxHeight: "100%"}}>
+
+          <List className="message-list" fullWidth>
+       {messages.map((message, i) => (
+         <ListItem key={i}
+         className={`message-item ${message.ownedByCurrentUser ? "my-message" : "received-message"}`} >
+         <Typography variant="body1" fullWidth> {`${message.user} : ${message.body}`} </Typography>
+         </ListItem>
+       ))} 
+          </List>
+
+        </Grid>
+        <Grid direction="column" item container xs = {4} style = {{border : "2px solid pink", maxWidth : "100%"}}>
+          <Grid item xs ={6} style = {{border : "2px solid pink", maxWidth : "100%"}}> 
+            <TextField value={newMessage} onChange={handleNewMessageChange} placeholder="Write message..." className="new-message-field" variant="outlined" fullWidth/>
+          </Grid>
+          <Grid item xs ={6} style = {{border : "2px solid pink", maxWidth : "100%", maxHeight :"100%"}}> 
+            <Button onClick={handleMessageSend}  fullWidth  variant="contained" color="primary" size = "large">
+            Send
+            </Button>
+          </Grid>
+        </Grid>
+       </Grid>
+  
+    </Grid>
+    </Grid>
+      <Grid item  alignItems="center" xs = {8} style = {{border : "2px solid pink", maxWidth : "100%", maxHeight :"100%"}} >
+        <Paper style = {{border : "2px solid green", maxWidth : "100%", maxHeight :"100%", height : "100%"}}>
+          <Typography> SPACE FOR MAP </Typography>
+        </Paper>
+      </Grid> 
+  
+  
+
+  </Grid> 
+  );
 
 }
-
-// const clientRef = useRef();
-// const [data, setData] = useState();
-// const [input, setInput] = useState('');
-// const [messageHistory, setMessageHistory] = useState([])
-// useEffect(() => {
-
-//   if(client){
-//     client.onerror = client.onopen = client.onclose = null;
-//     client.close();
-//   }
-//   //crate new client  (port we open the app on);
-//   const client = new WebSocket('ws://localhost:8080');
-  
-//   //add client ref to clientRef();
-//   clientRef.current = client;
-
-//   clientRef.current.onopen = () => {
-//     clientRef.current.send('Connected to server');
-//   }
-
-//   clientRef.current.onerror = (error) => {
-//     console.log('Error' + error)
-//   };
-
-//   clientRef.current.onmessage = (message) => {
-//     messageHistory.push(`${message.data}\n\n`)
-//     setData(message.data)
-//   }
-//   //remove socket onclose
-//   clientRef.current.onclose = ( ) =>{
-//     clientRef.current = null;
-//   }
-//   //close socket
-//   return () => clientRef.current.close();
-
-// }, []);
-
-// const handleInputChange = (event) =>{
-  
-//   event.preventDefault();
-//   const input = event.target.value;
-//   console.log(input);
-//   setInput(input);
-// };
-
-// const sendMessage = (input) => {
-//     console.log(input)
-//       clientRef.current.send(input);
-//       input = ''
-// }
- 
-
-
-// return(
- 
-//   <Container>
-//   <Grid container xs={12}>
-//   <Grid item xs={10}>
-//   <Input onChange={(event=>{handleInputChange(event)})}> </Input>
-//   </Grid>
-//   <Grid item xs={2}>
-//   <Button 
-//   id="send"
-//   title="Send Message"
-//   color="primary"
-//   onClick={()=>{
-//     sendMessage(input);
-//   }}>
-//   Send Message
-//   </Button>
-//   </Grid>
-//   </Grid>
-
-//   <Grid container xs = {12} >
-//   <Grid item xs={12}>
-//   <Typography>Responses from server below</Typography>
-//   </Grid>
-//   <Grid item xs ={12}>
-//   <Typography style={{height : "400px"}}>
-//   {data}
-//   </Typography>
-//   </Grid>
-//    </Grid>
-
-//   </Container>
-// );}
-
- 
-
 
 export default Room; 
